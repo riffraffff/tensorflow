@@ -1,0 +1,57 @@
+import json
+import os
+import glob
+from PIL import Image
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf
+from model import MobileNetV3_large
+tf.config.run_functions_eagerly(True)
+
+
+def main():
+    im_height = 224
+    im_width = 224
+
+    # load image
+    img_path = "C:\\Users\\Lunatic Tear\\PycharmProjects\\GoogLeNet\data_set\\flower_data\\flower_photos\\tulips\\10791227_7168491604.jpg"
+    assert os.path.exists(img_path), "file: '{}' dose not exist.".format(img_path)
+    img = Image.open(img_path)
+    # resize image to 224x224
+    img = img.resize((im_width, im_height))
+    plt.imshow(img)
+
+    # scaling pixel value and normalize
+    img = ((np.array(img) / 255.) - 0.5) / 0.5
+
+    # Add the image to a batch where it's the only member.
+    img = (np.expand_dims(img, 0))
+
+    # read class_indict
+    json_path = './class_indices.json'
+    assert os.path.exists(json_path), "file: '{}' dose not exist.".format(json_path)
+
+    with open(json_path, "r") as f:
+        class_indict = json.load(f)
+
+    model = MobileNetV3_large(num_class=5)
+    model.summary()
+    # model.load_weights("./save_weights/myGoogLenet.h5", by_name=True)  # h5 format
+    weights_path = "./save_weights/myMobileNetV3.h5"
+    assert len(glob.glob(weights_path + "*")), "cannot find {}".format(weights_path)
+    model.load_weights(weights_path)
+
+    result = np.squeeze(model.predict(img))
+    predict_class = np.argmax(result)
+
+    print_res = "class: {}   prob: {:.3}".format(class_indict[str(predict_class)],
+                                                 result[predict_class])
+    plt.title(print_res)
+    for i in range(len(result)):
+        print("class: {:10}   prob: {:.3}".format(class_indict[str(i)],
+                                                  result[i]))
+    plt.show()
+
+
+if __name__ == "__main__":
+    main()
